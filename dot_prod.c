@@ -128,6 +128,44 @@ static inline void dot_prod(float* result,
 
     *result = dotProduct;
 }
+
+#elif defined(TEST_NEON1Q)
+
+#include <arm_neon.h>
+
+static inline void dot_prod(float* result,
+                                                 const float* input,
+                                                 const float* taps,
+                                                 unsigned int num_points)
+{
+
+    unsigned int quarter_points = num_points / 4;
+    float dotProduct = 0;
+    const float* aPtr = input;
+    const float* bPtr = taps;
+    unsigned int number = 0;
+
+    float32x4_t a_val, b_val, accumulator_val;
+    accumulator_val = vdupq_n_f32(0);
+    for (number = 0; number < quarter_points; ++number) {
+        a_val = vld1q_f32(aPtr);
+        b_val = vld1q_f32(bPtr);
+        accumulator_val =
+            vmlaq_f32(accumulator_val, a_val, b_val);
+        aPtr += 4;
+        bPtr += 4;
+    }
+    float accumulator[4];
+    vst1q_f32(accumulator, accumulator_val);
+    dotProduct = accumulator[0] + accumulator[1] + accumulator[2] + accumulator[3];
+
+    for (number = quarter_points * 4; number < num_points; number++) {
+        dotProduct += ((*aPtr++) * (*bPtr++));
+    }
+
+    *result = dotProduct;
+}
+
 #elif defined(TEST_NEON2Q)
 
 #include <arm_neon.h>
