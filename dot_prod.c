@@ -108,6 +108,10 @@ static inline void dot_prod(float* result,
     for (number = 0; number < quarter_points; ++number) {
         a_val = vld4q_f32(aPtr);
         b_val = vld4q_f32(bPtr);
+#if defined(TEST_PREFETCH)
+        __builtin_prefetch(aPtr+16);
+        __builtin_prefetch(bPtr+16);
+#endif
         accumulator0.val[0] = vmlaq_f32(accumulator0.val[0], a_val.val[0], b_val.val[0]);
         accumulator0.val[1] = vmlaq_f32(accumulator0.val[1], a_val.val[1], b_val.val[1]);
         accumulator0.val[2] = vmlaq_f32(accumulator0.val[2], a_val.val[2], b_val.val[2]);
@@ -150,6 +154,10 @@ static inline void dot_prod(float* result,
     for (number = 0; number < quarter_points; ++number) {
         a_val = vld1q_f32(aPtr);
         b_val = vld1q_f32(bPtr);
+#if defined(TEST_PREFETCH)
+        __builtin_prefetch(aPtr+4);
+        __builtin_prefetch(bPtr+4);
+#endif
         accumulator_val =
             vmlaq_f32(accumulator_val, a_val, b_val);
         aPtr += 4;
@@ -189,6 +197,10 @@ static inline void dot_prod(float* result,
     for (number = 0; number < quarter_points; ++number) {
         a_val = vld2q_f32(aPtr);
         b_val = vld2q_f32(bPtr);
+#if defined(TEST_PREFETCH)
+        __builtin_prefetch(aPtr+8);
+        __builtin_prefetch(bPtr+8);
+#endif
         accumulator_val.val[0] =
             vmlaq_f32(accumulator_val.val[0], a_val.val[0], b_val.val[0]);
         accumulator_val.val[1] =
@@ -220,14 +232,21 @@ void dot_prod(float *result,
 #endif
 
 int main(int argc, char **argv) {
-//  if (argc != 2) {
-//    return EXIT_FAILURE;
-//  }
   size_t max_input = 200000;
   size_t memory_size = max_input;
   unsigned int num_points = HB_KERNEL_FLOAT_LEN;
   float *taps = HB_KERNEL_FLOAT;
-#if defined(TEST_NEON2Q) && defined(TEST_ALIGN_SIZE)
+#if defined(TEST_NEON1Q) && defined(TEST_ALIGN_SIZE)
+  if( max_input % 4 != 0 ) {
+    memory_size = ((max_input / 4) + 1) * 4;
+  }
+  if( num_points % 4 != 0 ) {
+    num_points = ((num_points / 4) + 1) * 4;
+    taps = malloc(sizeof(float) * num_points);
+    memset(taps, 0, sizeof(float) * num_points);
+    memcpy(taps, HB_KERNEL_FLOAT, sizeof(float) * HB_KERNEL_FLOAT_LEN);
+  }
+#elif defined(TEST_NEON2Q) && defined(TEST_ALIGN_SIZE)
   if( max_input % 8 != 0 ) {
     memory_size = ((max_input / 8) + 1) * 8;
   }
@@ -248,7 +267,6 @@ int main(int argc, char **argv) {
     memcpy(taps, HB_KERNEL_FLOAT, sizeof(float) * HB_KERNEL_FLOAT_LEN);
   }
 #endif
-//  printf("actual memory allocated: %zu number of points: %d\n", memory_size, num_points);
   float *input = NULL;
 #if defined(TEST_ALIGN_MEMORY)
   int memory_code = posix_memalign((void **)&input, 32, sizeof(float) * memory_size);
@@ -280,6 +298,7 @@ int main(int argc, char **argv) {
   if (output == NULL) {
     return EXIT_FAILURE;
   }
+  printf("actual memory allocated: %zu number of points: %d input %p output %p\n", memory_size, num_points, input, output);
 
   int total_executions = 50;
 
