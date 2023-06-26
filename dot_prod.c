@@ -298,10 +298,8 @@ int main(int argc, char **argv) {
   if (output == NULL) {
     return EXIT_FAILURE;
   }
-  printf("actual memory allocated: %zu number of points: %d input %p output %p\n", memory_size, num_points, input, output);
-
+  //printf("actual memory allocated: %zu number of points: %d input %p output %p\n", memory_size, num_points, input, output);
   int total_executions = 50;
-
   clock_t begin = clock();
   for (int i = 0; i < total_executions; i++) {
     for (int j = 0; j < output_len; j++) {
@@ -311,7 +309,7 @@ int main(int argc, char **argv) {
 
   clock_t end = clock();
   double time_spent = (double) (end - begin) / CLOCKS_PER_SEC;
-  printf("completed in: %f seconds\n", time_spent / total_executions);
+  printf("%f", time_spent / total_executions);
   // validation is here to make sure assembly implementation is correct + -O2 optimization won't throw away calculations completely
   for (int i = 0; i < FIRST_50_EXPECTED_LEN; i++) {
     if (((int) (output[i] * 1000)) != ((int) (FIRST_50_EXPECTED[i] * 1000))) {
