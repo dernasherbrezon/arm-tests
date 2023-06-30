@@ -71,8 +71,13 @@ void dot_prod(float *result,
               unsigned int num_points) {
 
   float dotProduct = 0;
+#if defined(TEST_ALIGN_MEMORY)
+  const float* aPtr = (float *)__builtin_assume_aligned(input, 128);
+  const float* bPtr = (float *)__builtin_assume_aligned(taps, 128);
+#else
   const float *aPtr = input;
   const float *bPtr = taps;
+#endif
   unsigned int number = 0;
 
   for (number = 0; number < num_points; number++) {
@@ -94,8 +99,13 @@ static inline void dot_prod(float* result,
 
     unsigned int quarter_points = num_points / 16;
     float dotProduct = 0;
-    const float* aPtr = input;
-    const float* bPtr = taps;
+#if defined(TEST_ALIGN_MEMORY)
+  const float* aPtr = (float *)__builtin_assume_aligned(input, 128);
+  const float* bPtr = (float *)__builtin_assume_aligned(taps, 128);
+#else
+  const float *aPtr = input;
+  const float *bPtr = taps;
+#endif
     unsigned int number = 0;
 
     float32x4x4_t a_val, b_val, accumulator0;
@@ -145,8 +155,13 @@ static inline void dot_prod(float* result,
 
     unsigned int quarter_points = num_points / 4;
     float dotProduct = 0;
-    const float* aPtr = input;
-    const float* bPtr = taps;
+#if defined(TEST_ALIGN_MEMORY)
+  const float* aPtr = (float *)__builtin_assume_aligned(input, 128);
+  const float* bPtr = (float *)__builtin_assume_aligned(taps, 128);
+#else
+  const float *aPtr = input;
+  const float *bPtr = taps;
+#endif
     unsigned int number = 0;
 
     float32x4_t a_val, b_val, accumulator_val;
@@ -184,8 +199,13 @@ static inline void dot_prod(float *result,
 
   unsigned int quarter_points = num_points / 16;
   float dotProduct = 0;
+#if defined(TEST_ALIGN_MEMORY)
+  const float* aPtr = (float *)__builtin_assume_aligned(input, 128);
+  const float* bPtr = (float *)__builtin_assume_aligned(taps, 128);
+#else
   const float *aPtr = input;
   const float *bPtr = taps;
+#endif
   unsigned int number = 0;
 
   float32x4x2_t a_val, b_val, c_val, d_val;
@@ -260,8 +280,13 @@ static inline void dot_prod(float* result,
 
     unsigned int quarter_points = num_points / 8;
     float dotProduct = 0;
-    const float* aPtr = input;
-    const float* bPtr = taps;
+#if defined(TEST_ALIGN_MEMORY)
+  const float* aPtr = (float *)__builtin_assume_aligned(input, 128);
+  const float* bPtr = (float *)__builtin_assume_aligned(taps, 128);
+#else
+  const float *aPtr = input;
+  const float *bPtr = taps;
+#endif
     unsigned int number = 0;
 
     float32x4_t a_val, b_val, c_val, d_val, accumulator_val, accumulator_val1;
@@ -321,8 +346,13 @@ static inline void dot_prod(float* result,
 
     unsigned int quarter_points = num_points / 8;
     float dotProduct = 0;
-    const float* aPtr = input;
-    const float* bPtr = taps;
+#if defined(TEST_ALIGN_MEMORY)
+  const float* aPtr = (float *)__builtin_assume_aligned(input, 128);
+  const float* bPtr = (float *)__builtin_assume_aligned(taps, 128);
+#else
+  const float *aPtr = input;
+  const float *bPtr = taps;
+#endif
     unsigned int number = 0;
 
     float32x4x2_t a_val, b_val, accumulator_val;
@@ -404,7 +434,7 @@ int main(int argc, char **argv) {
 #endif
   float *input = NULL;
 #if defined(TEST_ALIGN_MEMORY)
-  int memory_code = posix_memalign((void **) &input, 32, sizeof(float) * memory_size);
+  int memory_code = posix_memalign((void **) &input, 128, sizeof(float) * memory_size);
   if (memory_code != 0) {
     return EXIT_FAILURE;
   }
@@ -414,7 +444,7 @@ int main(int argc, char **argv) {
   if (input == NULL) {
     return EXIT_FAILURE;
   }
-//  printf("input: %p\n", input);
+  printf("input: %p\n", input);
   for (size_t i = 0; i < max_input; i++) {
     // don't care about the loss of data
     input[i] = ((float) (i)) / 128.0f;
@@ -423,7 +453,7 @@ int main(int argc, char **argv) {
   float *output = NULL;
   size_t output_len = max_input - num_points - 1;
 #if defined(TEST_ALIGN_MEMORY)
-  memory_code = posix_memalign((void **) &output, 32, sizeof(float) * output_len);
+  memory_code = posix_memalign((void **) &output, 128, sizeof(float) * output_len);
   if (memory_code != 0) {
     return EXIT_FAILURE;
   }
