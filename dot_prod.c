@@ -66,9 +66,9 @@ const float FIRST_50_EXPECTED[] = {
 #if defined(TEST_GENERIC)
 
 void dot_prod(float *result,
-                      const float *input,
-                      const float *taps,
-                      unsigned int num_points) {
+              const float *input,
+              const float *taps,
+              unsigned int num_points) {
 
   float dotProduct = 0;
   const float *aPtr = input;
@@ -173,6 +173,141 @@ static inline void dot_prod(float* result,
 
     *result = dotProduct;
 }
+#elif defined(TEST_NEON2QI)
+
+#include <arm_neon.h>
+
+static inline void dot_prod(float *result,
+                            const float *input,
+                            const float *taps,
+                            unsigned int num_points) {
+
+  unsigned int quarter_points = num_points / 16;
+  float dotProduct = 0;
+  const float *aPtr = input;
+  const float *bPtr = taps;
+  unsigned int number = 0;
+
+  float32x4x2_t a_val, b_val, c_val, d_val;
+  float32x4x4_t accumulator0;
+  accumulator0.val[0] = vdupq_n_f32(0);
+  accumulator0.val[1] = vdupq_n_f32(0);
+  accumulator0.val[2] = vdupq_n_f32(0);
+  accumulator0.val[3] = vdupq_n_f32(0);
+
+  a_val = vld2q_f32(aPtr);
+  b_val = vld2q_f32(bPtr);
+
+  aPtr += 8;
+  bPtr += 8;
+
+  // factor of 2 loop unroll with independent accumulators
+  for (number = 0; number < quarter_points; ++number) {
+    c_val = vld2q_f32(aPtr);
+    d_val = vld2q_f32(bPtr);
+
+    accumulator0.val[0] =
+        vmlaq_f32(accumulator0.val[0], a_val.val[0], b_val.val[0]);
+    accumulator0.val[1] =
+        vmlaq_f32(accumulator0.val[1], a_val.val[1], b_val.val[1]);
+
+    if (number == (quarter_points - 1)) {
+      break;
+    }
+
+    aPtr += 8;
+    bPtr += 8;
+
+    a_val = vld2q_f32(aPtr);
+    b_val = vld2q_f32(bPtr);
+
+    accumulator0.val[2] =
+        vmlaq_f32(accumulator0.val[2], c_val.val[0], d_val.val[0]);
+    accumulator0.val[3] =
+        vmlaq_f32(accumulator0.val[3], c_val.val[1], d_val.val[1]);
+
+    aPtr += 8;
+    bPtr += 8;
+  }
+  accumulator0.val[2] =
+      vmlaq_f32(accumulator0.val[2], c_val.val[0], d_val.val[0]);
+  accumulator0.val[3] =
+      vmlaq_f32(accumulator0.val[3], c_val.val[1], d_val.val[1]);
+
+  accumulator0.val[0] = vaddq_f32(accumulator0.val[0], accumulator0.val[1]);
+  accumulator0.val[2] = vaddq_f32(accumulator0.val[2], accumulator0.val[3]);
+  accumulator0.val[0] = vaddq_f32(accumulator0.val[2], accumulator0.val[0]);
+  float accumulator[4];
+  vst1q_f32(accumulator, accumulator0.val[0]);
+  dotProduct = accumulator[0] + accumulator[1] + accumulator[2] + accumulator[3];
+
+  for (number = quarter_points * 16; number < num_points; number++) {
+    dotProduct += ((*aPtr++) * (*bPtr++));
+  }
+
+  *result = dotProduct;
+}
+
+#elif defined(TEST_NEON1QI)
+
+#include <arm_neon.h>
+
+static inline void dot_prod(float* result,
+                                                 const float* input,
+                                                 const float* taps,
+                                                 unsigned int num_points)
+{
+
+    unsigned int quarter_points = num_points / 8;
+    float dotProduct = 0;
+    const float* aPtr = input;
+    const float* bPtr = taps;
+    unsigned int number = 0;
+
+    float32x4_t a_val, b_val, c_val, d_val, accumulator_val, accumulator_val1;
+    accumulator_val = vdupq_n_f32(0);
+    accumulator_val1 = vdupq_n_f32(0);
+
+    a_val = vld1q_f32(aPtr);
+    b_val = vld1q_f32(bPtr);
+    aPtr += 4;
+    bPtr += 4;
+    for (number = 0; number < quarter_points; ++number) {
+        c_val = vld1q_f32(aPtr);
+        d_val = vld1q_f32(bPtr);
+
+        accumulator_val =
+            vmlaq_f32(accumulator_val, a_val, b_val);
+
+        if (number == (quarter_points - 1)) {
+          break;
+        }
+
+        aPtr += 4;
+        bPtr += 4;
+
+        a_val = vld1q_f32(aPtr);
+        b_val = vld1q_f32(bPtr);
+
+        accumulator_val1 =
+            vmlaq_f32(accumulator_val1, c_val, d_val);
+
+        aPtr += 4;
+        bPtr += 4;
+    }
+    accumulator_val1 =
+        vmlaq_f32(accumulator_val1, c_val, d_val);
+    accumulator_val = vaddq_f32(accumulator_val1, accumulator_val);
+    float accumulator[4];
+    vst1q_f32(accumulator, accumulator_val);
+    dotProduct = accumulator[0] + accumulator[1] + accumulator[2] + accumulator[3];
+
+    for (number = quarter_points * 8; number < num_points; number++) {
+        dotProduct += ((*aPtr++) * (*bPtr++));
+    }
+
+    *result = dotProduct;
+}
 
 #elif defined(TEST_NEON2Q)
 
@@ -232,11 +367,11 @@ void dot_prod(float *result,
 #endif
 
 int main(int argc, char **argv) {
-  size_t max_input = 200000;
+  size_t max_input = 262144;
   size_t memory_size = max_input;
   unsigned int num_points = HB_KERNEL_FLOAT_LEN;
   float *taps = HB_KERNEL_FLOAT;
-#if defined(TEST_NEON1Q) && defined(TEST_ALIGN_SIZE)
+#if (defined(TEST_NEON1Q) || defined(TEST_NEON1QI) || defined(TEST_GENERIC)) && defined(TEST_ALIGN_SIZE)
   if( max_input % 4 != 0 ) {
     memory_size = ((max_input / 4) + 1) * 4;
   }
@@ -246,7 +381,7 @@ int main(int argc, char **argv) {
     memset(taps, 0, sizeof(float) * num_points);
     memcpy(taps, HB_KERNEL_FLOAT, sizeof(float) * HB_KERNEL_FLOAT_LEN);
   }
-#elif defined(TEST_NEON2Q) && defined(TEST_ALIGN_SIZE)
+#elif (defined(TEST_NEON2Q) || defined(TEST_NEON2QI)) && defined(TEST_ALIGN_SIZE)
   if( max_input % 8 != 0 ) {
     memory_size = ((max_input / 8) + 1) * 8;
   }
@@ -269,8 +404,8 @@ int main(int argc, char **argv) {
 #endif
   float *input = NULL;
 #if defined(TEST_ALIGN_MEMORY)
-  int memory_code = posix_memalign((void **)&input, 32, sizeof(float) * memory_size);
-  if( memory_code != 0 ) {
+  int memory_code = posix_memalign((void **) &input, 32, sizeof(float) * memory_size);
+  if (memory_code != 0) {
     return EXIT_FAILURE;
   }
 #else
@@ -288,8 +423,8 @@ int main(int argc, char **argv) {
   float *output = NULL;
   size_t output_len = max_input - num_points - 1;
 #if defined(TEST_ALIGN_MEMORY)
-  memory_code = posix_memalign((void **)&output, 32, sizeof(float) * output_len);
-  if( memory_code != 0 ) {
+  memory_code = posix_memalign((void **) &output, 32, sizeof(float) * output_len);
+  if (memory_code != 0) {
     return EXIT_FAILURE;
   }
 #else
