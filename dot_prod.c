@@ -4,6 +4,7 @@
 #include <string.h>
 
 #define HB_KERNEL_FLOAT_LEN 47
+#define MEMORY_ALIGNMENT 128
 
 float HB_KERNEL_FLOAT[HB_KERNEL_FLOAT_LEN] =
     {
@@ -72,8 +73,8 @@ void dot_prod(float *result,
 
   float dotProduct = 0;
 #if defined(TEST_ALIGN_MEMORY)
-  const float* aPtr = (float *)__builtin_assume_aligned(input, 128);
-  const float* bPtr = (float *)__builtin_assume_aligned(taps, 128);
+  const float* aPtr = (float *)__builtin_assume_aligned(input, MEMORY_ALIGNMENT);
+  const float* bPtr = (float *)__builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
 #else
   const float *aPtr = input;
   const float *bPtr = taps;
@@ -100,8 +101,8 @@ static inline void dot_prod(float* result,
     unsigned int quarter_points = num_points / 16;
     float dotProduct = 0;
 #if defined(TEST_ALIGN_MEMORY)
-  const float* aPtr = (float *)__builtin_assume_aligned(input, 128);
-  const float* bPtr = (float *)__builtin_assume_aligned(taps, 128);
+  const float* aPtr = (float *)__builtin_assume_aligned(input, MEMORY_ALIGNMENT);
+  const float* bPtr = (float *)__builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
 #else
   const float *aPtr = input;
   const float *bPtr = taps;
@@ -156,8 +157,8 @@ static inline void dot_prod(float* result,
     unsigned int quarter_points = num_points / 4;
     float dotProduct = 0;
 #if defined(TEST_ALIGN_MEMORY)
-  const float* aPtr = (float *)__builtin_assume_aligned(input, 128);
-  const float* bPtr = (float *)__builtin_assume_aligned(taps, 128);
+  const float* aPtr = (float *)__builtin_assume_aligned(input, MEMORY_ALIGNMENT);
+  const float* bPtr = (float *)__builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
 #else
   const float *aPtr = input;
   const float *bPtr = taps;
@@ -200,8 +201,8 @@ static inline void dot_prod(float *result,
   unsigned int quarter_points = num_points / 16;
   float dotProduct = 0;
 #if defined(TEST_ALIGN_MEMORY)
-  const float* aPtr = (float *)__builtin_assume_aligned(input, 128);
-  const float* bPtr = (float *)__builtin_assume_aligned(taps, 128);
+  const float* aPtr = (float *)__builtin_assume_aligned(input, MEMORY_ALIGNMENT);
+  const float* bPtr = (float *)__builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
 #else
   const float *aPtr = input;
   const float *bPtr = taps;
@@ -281,8 +282,8 @@ static inline void dot_prod(float* result,
     unsigned int quarter_points = num_points / 8;
     float dotProduct = 0;
 #if defined(TEST_ALIGN_MEMORY)
-  const float* aPtr = (float *)__builtin_assume_aligned(input, 128);
-  const float* bPtr = (float *)__builtin_assume_aligned(taps, 128);
+  const float* aPtr = (float *)__builtin_assume_aligned(input, MEMORY_ALIGNMENT);
+  const float* bPtr = (float *)__builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
 #else
   const float *aPtr = input;
   const float *bPtr = taps;
@@ -347,8 +348,8 @@ static inline void dot_prod(float* result,
     unsigned int quarter_points = num_points / 8;
     float dotProduct = 0;
 #if defined(TEST_ALIGN_MEMORY)
-  const float* aPtr = (float *)__builtin_assume_aligned(input, 128);
-  const float* bPtr = (float *)__builtin_assume_aligned(taps, 128);
+  const float* aPtr = (float *)__builtin_assume_aligned(input, MEMORY_ALIGNMENT);
+  const float* bPtr = (float *)__builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
 #else
   const float *aPtr = input;
   const float *bPtr = taps;
@@ -401,7 +402,7 @@ int main(int argc, char **argv) {
   size_t memory_size = max_input;
   unsigned int num_points = HB_KERNEL_FLOAT_LEN;
   float *taps = HB_KERNEL_FLOAT;
-#if (defined(TEST_NEON1Q) || defined(TEST_NEON1QI) || defined(TEST_GENERIC)) && defined(TEST_ALIGN_SIZE)
+#if (defined(TEST_NEON1Q) || defined(TEST_NEON1QI)) && defined(TEST_ALIGN_SIZE)
   if( max_input % 4 != 0 ) {
     memory_size = ((max_input / 4) + 1) * 4;
   }
@@ -432,9 +433,21 @@ int main(int argc, char **argv) {
     memcpy(taps, HB_KERNEL_FLOAT, sizeof(float) * HB_KERNEL_FLOAT_LEN);
   }
 #endif
+
+#if defined(TEST_ALIGN_MEMORY)
+  float *aligned_taps = NULL;
+  int memory_code = posix_memalign((void **) &aligned_taps, MEMORY_ALIGNMENT, sizeof(float) * num_points);
+  if (memory_code != 0) {
+    return EXIT_FAILURE;
+  }
+  memcpy(aligned_taps, taps, sizeof(float) * num_points);
+  //memory leak here: original taps might not be freed. Doesn't matter for test
+  taps = aligned_taps;
+#endif
+
   float *input = NULL;
 #if defined(TEST_ALIGN_MEMORY)
-  int memory_code = posix_memalign((void **) &input, 128, sizeof(float) * memory_size);
+  memory_code = posix_memalign((void **) &input, MEMORY_ALIGNMENT, sizeof(float) * memory_size);
   if (memory_code != 0) {
     return EXIT_FAILURE;
   }
@@ -453,7 +466,7 @@ int main(int argc, char **argv) {
   float *output = NULL;
   size_t output_len = max_input - num_points - 1;
 #if defined(TEST_ALIGN_MEMORY)
-  memory_code = posix_memalign((void **) &output, 128, sizeof(float) * output_len);
+  memory_code = posix_memalign((void **) &output, MEMORY_ALIGNMENT, sizeof(float) * output_len);
   if (memory_code != 0) {
     return EXIT_FAILURE;
   }
