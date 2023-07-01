@@ -73,8 +73,8 @@ void dot_prod(float *result,
 
   float dotProduct = 0;
 #if defined(TEST_ALIGN_MEMORY)
-  const float* aPtr = (float *)__builtin_assume_aligned(input, MEMORY_ALIGNMENT);
-  const float* bPtr = (float *)__builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
+  const float *aPtr = (float *) __builtin_assume_aligned(input, MEMORY_ALIGNMENT);
+  const float *bPtr = (float *) __builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
 #else
   const float *aPtr = input;
   const float *bPtr = taps;
@@ -398,73 +398,91 @@ void dot_prod(float *result,
 #endif
 
 int main(int argc, char **argv) {
-  size_t max_input = 262144;
-  size_t memory_size = max_input;
-  unsigned int num_points = HB_KERNEL_FLOAT_LEN;
+  size_t input_size = 262144;
+  size_t aligned_input_size = input_size;
+  unsigned int taps_size = HB_KERNEL_FLOAT_LEN;
+  unsigned int aligned_taps_size = taps_size;
   float *taps = HB_KERNEL_FLOAT;
-#if (defined(TEST_NEON1Q) || defined(TEST_NEON1QI)) && defined(TEST_ALIGN_SIZE)
-  if( max_input % 4 != 0 ) {
-    memory_size = ((max_input / 4) + 1) * 4;
-  }
-  if( num_points % 4 != 0 ) {
-    num_points = ((num_points / 4) + 1) * 4;
-    taps = malloc(sizeof(float) * num_points);
-    memset(taps, 0, sizeof(float) * num_points);
-    memcpy(taps, HB_KERNEL_FLOAT, sizeof(float) * HB_KERNEL_FLOAT_LEN);
-  }
-#elif (defined(TEST_NEON2Q) || defined(TEST_NEON2QI)) && defined(TEST_ALIGN_SIZE)
-  if( max_input % 8 != 0 ) {
-    memory_size = ((max_input / 8) + 1) * 8;
-  }
-  if( num_points % 8 != 0 ) {
-    num_points = ((num_points / 8) + 1) * 8;
-    taps = malloc(sizeof(float) * num_points);
-    memset(taps, 0, sizeof(float) * num_points);
-    memcpy(taps, HB_KERNEL_FLOAT, sizeof(float) * HB_KERNEL_FLOAT_LEN);
-  }
-#elif defined(TEST_NEON4Q) && defined(TEST_ALIGN_SIZE)
-  if( max_input % 16 != 0 ) {
-    memory_size = ((max_input / 16) + 1) * 16;
-  }
-  if( num_points % 16 != 0 ) {
-    num_points = ((num_points / 16) + 1) * 16;
-    taps = malloc(sizeof(float) * num_points);
-    memset(taps, 0, sizeof(float) * num_points);
-    memcpy(taps, HB_KERNEL_FLOAT, sizeof(float) * HB_KERNEL_FLOAT_LEN);
-  }
-#endif
 
+  float **aligned_taps = NULL;
+  int number_of_aligned_taps = MEMORY_ALIGNMENT / 8 / sizeof(float);
 #if defined(TEST_ALIGN_MEMORY)
-  float *aligned_taps = NULL;
-  int memory_code = posix_memalign((void **) &aligned_taps, MEMORY_ALIGNMENT, sizeof(float) * num_points);
-  if (memory_code != 0) {
+//  printf("align memory\n");
+  // Make a set of taps at all possible alignments
+  float **result = malloc(number_of_aligned_taps * sizeof(float *));
+  if (result == NULL) {
     return EXIT_FAILURE;
   }
-  memcpy(aligned_taps, taps, sizeof(float) * num_points);
-  //memory leak here: original taps might not be freed. Doesn't matter for test
-  taps = aligned_taps;
+  unsigned int aligned_to_memory_taps_size = taps_size + number_of_aligned_taps - 1;
+  for (int i = 0; i < number_of_aligned_taps; i++) {
+    posix_memalign((void **) &(result[i]), MEMORY_ALIGNMENT, sizeof(float) * aligned_to_memory_taps_size);
+    // some taps will be longer than original, but
+    // since they contain zeros, multiplication on an input will produce 0
+    // there is a tradeoff: multiply unaligned input or
+    // multiply aligned input but with additional zeros
+    memset(result[i], 0, sizeof(float) * aligned_to_memory_taps_size);
+    memcpy(result[i] + i, taps, sizeof(float) * taps_size);
+  }
+  // re-define taps sizes so that they can aligned later on
+  taps_size = aligned_to_memory_taps_size;
+  aligned_taps_size = taps_size;
+  aligned_taps = result;
+#endif
+
+#if defined(TEST_ALIGN_SIZE)
+  int align_size;
+#if (defined(TEST_NEON1Q))
+  align_size = 4;
+#elif (defined(TEST_NEON2Q) || defined(TEST_NEON1QI))
+  align_size = 8;
+#elif (defined(TEST_NEON4Q) || defined(TEST_NEON2QI))
+  align_size = 16;
+#else
+  align_size = 1;
+#endif
+  if (align_size != 1) {
+    if (input_size % align_size != 0) {
+      aligned_input_size = ((input_size / align_size) + 1) * align_size;
+    }
+    if (taps_size % align_size != 0) {
+      aligned_taps_size = ((taps_size / align_size) + 1) * align_size;
+#if defined(TEST_ALIGN_MEMORY)
+      for (int i = 0; i < number_of_aligned_taps; i++) {
+        float *aligned_by_memory_and_size = NULL;
+        posix_memalign((void **) &(aligned_by_memory_and_size), MEMORY_ALIGNMENT, sizeof(float) * aligned_taps_size);
+        memset(aligned_by_memory_and_size, 0, sizeof(float) * aligned_taps_size);
+        memcpy(aligned_by_memory_and_size, result[i], sizeof(float) * taps_size);
+        free(result[i]);
+        result[i] = aligned_by_memory_and_size;
+      }
+#else
+      taps = malloc(sizeof(float) * aligned_taps_size);
+      memset(taps, 0, sizeof(float) * aligned_taps_size);
+      memcpy(taps, HB_KERNEL_FLOAT, sizeof(float) * taps_size);
+#endif
+    }
+  }
 #endif
 
   float *input = NULL;
 #if defined(TEST_ALIGN_MEMORY)
-  memory_code = posix_memalign((void **) &input, MEMORY_ALIGNMENT, sizeof(float) * memory_size);
+  int memory_code = posix_memalign((void **) &input, MEMORY_ALIGNMENT, sizeof(float) * aligned_input_size);
   if (memory_code != 0) {
     return EXIT_FAILURE;
   }
 #else
-  input = malloc(sizeof(float) * max_input);
+  input = malloc(sizeof(float) * aligned_input_size);
 #endif
   if (input == NULL) {
     return EXIT_FAILURE;
   }
-  printf("input: %p\n", input);
-  for (size_t i = 0; i < max_input; i++) {
+  for (size_t i = 0; i < input_size; i++) {
     // don't care about the loss of data
     input[i] = ((float) (i)) / 128.0f;
   }
 
   float *output = NULL;
-  size_t output_len = max_input - num_points - 1;
+  size_t output_len = input_size - aligned_taps_size - 1;
 #if defined(TEST_ALIGN_MEMORY)
   memory_code = posix_memalign((void **) &output, MEMORY_ALIGNMENT, sizeof(float) * output_len);
   if (memory_code != 0) {
@@ -476,12 +494,19 @@ int main(int argc, char **argv) {
   if (output == NULL) {
     return EXIT_FAILURE;
   }
-  //printf("actual memory allocated: %zu number of points: %d input %p output %p\n", memory_size, num_points, input, output);
+  //printf("input: %p\noutput: %p\ntaps: %p\ntaps len: %d\n", input, output, taps, aligned_taps_size);
   int total_executions = 50;
   clock_t begin = clock();
   for (int i = 0; i < total_executions; i++) {
     for (int j = 0; j < output_len; j++) {
-      dot_prod(&output[j], input + j, taps, num_points);
+#if defined(TEST_ALIGN_MEMORY)
+      const float *buf = (const float *) (input + j);
+      const float *aligned_buffer = (const float *) ((size_t) buf & ~((MEMORY_ALIGNMENT / 8) - 1));
+      unsigned align_index = buf - aligned_buffer;
+      dot_prod(&output[j], aligned_buffer, aligned_taps[align_index], aligned_taps_size);
+#else
+      dot_prod(&output[j], input + j, taps, aligned_taps_size);
+#endif
     }
   }
 
