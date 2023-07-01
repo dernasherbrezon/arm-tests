@@ -4,7 +4,8 @@
 #include <string.h>
 
 #define HB_KERNEL_FLOAT_LEN 47
-#define MEMORY_ALIGNMENT 128
+// 128 bits
+#define MEMORY_ALIGNMENT 16
 
 float HB_KERNEL_FLOAT[HB_KERNEL_FLOAT_LEN] =
     {
@@ -405,7 +406,7 @@ int main(int argc, char **argv) {
   float *taps = HB_KERNEL_FLOAT;
 
   float **aligned_taps = NULL;
-  int number_of_aligned_taps = MEMORY_ALIGNMENT / 8 / sizeof(float);
+  int number_of_aligned_taps = MEMORY_ALIGNMENT / sizeof(float);
 #if defined(TEST_ALIGN_MEMORY)
 //  printf("align memory\n");
   // Make a set of taps at all possible alignments
@@ -501,7 +502,7 @@ int main(int argc, char **argv) {
     for (int j = 0; j < output_len; j++) {
 #if defined(TEST_ALIGN_MEMORY)
       const float *buf = (const float *) (input + j);
-      const float *aligned_buffer = (const float *) ((size_t) buf & ~((MEMORY_ALIGNMENT / 8) - 1));
+      const float *aligned_buffer = (const float *) ((size_t) buf & ~(MEMORY_ALIGNMENT - 1));
       unsigned align_index = buf - aligned_buffer;
       dot_prod(&output[j], aligned_buffer, aligned_taps[align_index], aligned_taps_size);
 #else
