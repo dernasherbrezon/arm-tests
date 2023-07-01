@@ -5,7 +5,15 @@
 
 #define HB_KERNEL_FLOAT_LEN 47
 // 128 bits
-#define MEMORY_ALIGNMENT 16
+#if defined(TEST_ALIGN_MEMORY_4B)
+  #define MEMORY_ALIGNMENT 4
+#elif defined(TEST_ALIGN_MEMORY_8B)
+  #define MEMORY_ALIGNMENT 8
+#elif defined(TEST_ALIGN_MEMORY_16B)
+  #define MEMORY_ALIGNMENT 16
+#else
+  #define MEMORY_ALIGNMENT 1
+#endif
 
 float HB_KERNEL_FLOAT[HB_KERNEL_FLOAT_LEN] =
     {
@@ -73,12 +81,12 @@ void dot_prod(float *result,
               unsigned int num_points) {
 
   float dotProduct = 0;
-#if defined(TEST_ALIGN_MEMORY)
-  const float *aPtr = (float *) __builtin_assume_aligned(input, MEMORY_ALIGNMENT);
-  const float *bPtr = (float *) __builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
-#else
+#if defined(TEST_NONALIGN_MEMORY)
   const float *aPtr = input;
   const float *bPtr = taps;
+#else
+  const float *aPtr = (float *) __builtin_assume_aligned(input, MEMORY_ALIGNMENT);
+  const float *bPtr = (float *) __builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
 #endif
   unsigned int number = 0;
 
@@ -101,12 +109,12 @@ static inline void dot_prod(float* result,
 
     unsigned int quarter_points = num_points / 16;
     float dotProduct = 0;
-#if defined(TEST_ALIGN_MEMORY)
-  const float* aPtr = (float *)__builtin_assume_aligned(input, MEMORY_ALIGNMENT);
-  const float* bPtr = (float *)__builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
-#else
+#if defined(TEST_NONALIGN_MEMORY)
   const float *aPtr = input;
   const float *bPtr = taps;
+#else
+  const float *aPtr = (float *) __builtin_assume_aligned(input, MEMORY_ALIGNMENT);
+  const float *bPtr = (float *) __builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
 #endif
     unsigned int number = 0;
 
@@ -157,12 +165,12 @@ static inline void dot_prod(float* result,
 
     unsigned int quarter_points = num_points / 4;
     float dotProduct = 0;
-#if defined(TEST_ALIGN_MEMORY)
-  const float* aPtr = (float *)__builtin_assume_aligned(input, MEMORY_ALIGNMENT);
-  const float* bPtr = (float *)__builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
-#else
+#if defined(TEST_NONALIGN_MEMORY)
   const float *aPtr = input;
   const float *bPtr = taps;
+#else
+  const float *aPtr = (float *) __builtin_assume_aligned(input, MEMORY_ALIGNMENT);
+  const float *bPtr = (float *) __builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
 #endif
     unsigned int number = 0;
 
@@ -201,12 +209,12 @@ static inline void dot_prod(float *result,
 
   unsigned int quarter_points = num_points / 16;
   float dotProduct = 0;
-#if defined(TEST_ALIGN_MEMORY)
-  const float* aPtr = (float *)__builtin_assume_aligned(input, MEMORY_ALIGNMENT);
-  const float* bPtr = (float *)__builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
-#else
+#if defined(TEST_NONALIGN_MEMORY)
   const float *aPtr = input;
   const float *bPtr = taps;
+#else
+  const float *aPtr = (float *) __builtin_assume_aligned(input, MEMORY_ALIGNMENT);
+  const float *bPtr = (float *) __builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
 #endif
   unsigned int number = 0;
 
@@ -282,12 +290,12 @@ static inline void dot_prod(float* result,
 
     unsigned int quarter_points = num_points / 8;
     float dotProduct = 0;
-#if defined(TEST_ALIGN_MEMORY)
-  const float* aPtr = (float *)__builtin_assume_aligned(input, MEMORY_ALIGNMENT);
-  const float* bPtr = (float *)__builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
-#else
+#if defined(TEST_NONALIGN_MEMORY)
   const float *aPtr = input;
   const float *bPtr = taps;
+#else
+  const float *aPtr = (float *) __builtin_assume_aligned(input, MEMORY_ALIGNMENT);
+  const float *bPtr = (float *) __builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
 #endif
     unsigned int number = 0;
 
@@ -348,12 +356,12 @@ static inline void dot_prod(float* result,
 
     unsigned int quarter_points = num_points / 8;
     float dotProduct = 0;
-#if defined(TEST_ALIGN_MEMORY)
-  const float* aPtr = (float *)__builtin_assume_aligned(input, MEMORY_ALIGNMENT);
-  const float* bPtr = (float *)__builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
-#else
+#if defined(TEST_NONALIGN_MEMORY)
   const float *aPtr = input;
   const float *bPtr = taps;
+#else
+  const float *aPtr = (float *) __builtin_assume_aligned(input, MEMORY_ALIGNMENT);
+  const float *bPtr = (float *) __builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
 #endif
     unsigned int number = 0;
 
@@ -407,7 +415,7 @@ int main(int argc, char **argv) {
 
   float **aligned_taps = NULL;
   int number_of_aligned_taps = MEMORY_ALIGNMENT / sizeof(float);
-#if defined(TEST_ALIGN_MEMORY)
+#if !defined(TEST_NOALIGN_MEMORY)
 //  printf("align memory\n");
   // Make a set of taps at all possible alignments
   float **result = malloc(number_of_aligned_taps * sizeof(float *));
@@ -447,7 +455,11 @@ int main(int argc, char **argv) {
     }
     if (taps_size % align_size != 0) {
       aligned_taps_size = ((taps_size / align_size) + 1) * align_size;
-#if defined(TEST_ALIGN_MEMORY)
+#if defined(TEST_NOALIGN_MEMORY)
+      taps = malloc(sizeof(float) * aligned_taps_size);
+      memset(taps, 0, sizeof(float) * aligned_taps_size);
+      memcpy(taps, HB_KERNEL_FLOAT, sizeof(float) * taps_size);
+#else
       for (int i = 0; i < number_of_aligned_taps; i++) {
         float *aligned_by_memory_and_size = NULL;
         posix_memalign((void **) &(aligned_by_memory_and_size), MEMORY_ALIGNMENT, sizeof(float) * aligned_taps_size);
@@ -456,23 +468,19 @@ int main(int argc, char **argv) {
         free(result[i]);
         result[i] = aligned_by_memory_and_size;
       }
-#else
-      taps = malloc(sizeof(float) * aligned_taps_size);
-      memset(taps, 0, sizeof(float) * aligned_taps_size);
-      memcpy(taps, HB_KERNEL_FLOAT, sizeof(float) * taps_size);
 #endif
     }
   }
 #endif
 
   float *input = NULL;
-#if defined(TEST_ALIGN_MEMORY)
+#if defined(TEST_NOALIGN_MEMORY)
+  input = malloc(sizeof(float) * aligned_input_size);
+#else
   int memory_code = posix_memalign((void **) &input, MEMORY_ALIGNMENT, sizeof(float) * aligned_input_size);
   if (memory_code != 0) {
     return EXIT_FAILURE;
   }
-#else
-  input = malloc(sizeof(float) * aligned_input_size);
 #endif
   if (input == NULL) {
     return EXIT_FAILURE;
@@ -484,13 +492,13 @@ int main(int argc, char **argv) {
 
   float *output = NULL;
   size_t output_len = input_size - aligned_taps_size - 1;
-#if defined(TEST_ALIGN_MEMORY)
+#if defined(TEST_NOALIGN_MEMORY)
+  output = malloc(sizeof(float) * output_len);
+#else
   memory_code = posix_memalign((void **) &output, MEMORY_ALIGNMENT, sizeof(float) * output_len);
   if (memory_code != 0) {
     return EXIT_FAILURE;
   }
-#else
-  output = malloc(sizeof(float) * output_len);
 #endif
   if (output == NULL) {
     return EXIT_FAILURE;
@@ -500,13 +508,13 @@ int main(int argc, char **argv) {
   clock_t begin = clock();
   for (int i = 0; i < total_executions; i++) {
     for (int j = 0; j < output_len; j++) {
-#if defined(TEST_ALIGN_MEMORY)
+#if defined(TEST_NOALIGN_MEMORY)
+      dot_prod(&output[j], input + j, taps, aligned_taps_size);
+#else
       const float *buf = (const float *) (input + j);
       const float *aligned_buffer = (const float *) ((size_t) buf & ~(MEMORY_ALIGNMENT - 1));
       unsigned align_index = buf - aligned_buffer;
       dot_prod(&output[j], aligned_buffer, aligned_taps[align_index], aligned_taps_size);
-#else
-      dot_prod(&output[j], input + j, taps, aligned_taps_size);
 #endif
     }
   }
