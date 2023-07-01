@@ -232,12 +232,12 @@ static inline void dot_prod(float *result,
     accumulator0.val[1] =
         vmlaq_f32(accumulator0.val[1], a_val.val[1], b_val.val[1]);
 
+    aPtr += 8;
+    bPtr += 8;
+
     if (number == (quarter_points - 1)) {
       break;
     }
-
-    aPtr += 8;
-    bPtr += 8;
 
     a_val = vld2q_f32(aPtr);
     b_val = vld2q_f32(bPtr);
@@ -305,12 +305,12 @@ static inline void dot_prod(float* result,
         accumulator_val =
             vmlaq_f32(accumulator_val, a_val, b_val);
 
+        aPtr += 4;
+        bPtr += 4;
+
         if (number == (quarter_points - 1)) {
           break;
         }
-
-        aPtr += 4;
-        bPtr += 4;
 
         a_val = vld1q_f32(aPtr);
         b_val = vld1q_f32(bPtr);
