@@ -412,8 +412,7 @@ int main(int argc, char **argv) {
 
   float **aligned_taps = NULL;
   int number_of_aligned_taps = MEMORY_ALIGNMENT / sizeof(float);
-#if !defined(TEST_NOALIGN_MEMORY)
-//  printf("align memory\n");
+#if !defined(TEST_NONALIGN_MEMORY)
   // Make a set of taps at all possible alignments
   float **result = malloc(number_of_aligned_taps * sizeof(float *));
   if (result == NULL) {
@@ -435,7 +434,7 @@ int main(int argc, char **argv) {
   aligned_taps = result;
 #endif
 
-#if defined(TEST_ALIGN_SIZE)
+#if !defined(TEST_NONALIGN_MEMORY)
   int align_size;
 #if (defined(TEST_NEON1Q))
   align_size = 4;
@@ -471,7 +470,7 @@ int main(int argc, char **argv) {
 #endif
 
   float *input = NULL;
-#if defined(TEST_NOALIGN_MEMORY)
+#if defined(TEST_NONALIGN_MEMORY)
   input = malloc(sizeof(float) * aligned_input_size);
 #else
   int memory_code = posix_memalign((void **) &input, MEMORY_ALIGNMENT, sizeof(float) * aligned_input_size);
@@ -489,7 +488,7 @@ int main(int argc, char **argv) {
 
   float *output = NULL;
   size_t output_len = input_size - aligned_taps_size - 1;
-#if defined(TEST_NOALIGN_MEMORY)
+#if defined(TEST_NONALIGN_MEMORY)
   output = malloc(sizeof(float) * output_len);
 #else
   memory_code = posix_memalign((void **) &output, MEMORY_ALIGNMENT, sizeof(float) * output_len);
@@ -505,7 +504,7 @@ int main(int argc, char **argv) {
   clock_t begin = clock();
   for (int i = 0; i < total_executions; i++) {
     for (int j = 0; j < output_len; j++) {
-#if defined(TEST_NOALIGN_MEMORY)
+#if defined(TEST_NONALIGN_MEMORY)
       dot_prod(&output[j], input + j, taps, aligned_taps_size);
 #else
       const float *buf = (const float *) (input + j);
