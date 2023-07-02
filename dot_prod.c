@@ -72,7 +72,7 @@ const float FIRST_50_EXPECTED[] = {
 
 #if defined(TEST_GENERIC)
 
-void dot_prod(float *result,
+static inline void dot_prod(float *result,
               const float *input,
               const float *taps,
               unsigned int num_points) {
@@ -91,6 +91,30 @@ void dot_prod(float *result,
     dotProduct += ((*aPtr++) * (*bPtr++));
   }
 
+  *result = dotProduct;
+}
+
+#elif defined(TEST_GENSYMM)
+
+static inline void dot_prod(float *result,
+              const float *input,
+              const float *taps,
+              unsigned int num_points) {
+
+  float dotProduct = 0;
+#if defined(TEST_NONALIGN_MEMORY)
+  const float *aPtr = input;
+  const float *bPtr = taps;
+#else
+  const float *aPtr = (float *) __builtin_assume_aligned(input, MEMORY_ALIGNMENT);
+  const float *bPtr = (float *) __builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
+#endif
+  unsigned int number = 0;
+
+  for (number = 0; number < num_points / 2; number++) {
+    dotProduct += bPtr[number] * (aPtr[number] + aPtr[47 - number - 1] );
+  }
+  dotProduct += bPtr[number] * aPtr[number];
   *result = dotProduct;
 }
 
