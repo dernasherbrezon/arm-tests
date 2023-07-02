@@ -4,10 +4,7 @@
 #include <string.h>
 
 #define HB_KERNEL_FLOAT_LEN 47
-// 128 bits
-#if defined(TEST_ALIGN_MEMORY_4B)
-  #define MEMORY_ALIGNMENT 4
-#elif defined(TEST_ALIGN_MEMORY_8B)
+#if defined(TEST_ALIGN_MEMORY_8B)
   #define MEMORY_ALIGNMENT 8
 #elif defined(TEST_ALIGN_MEMORY_16B)
   #define MEMORY_ALIGNMENT 16
