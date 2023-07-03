@@ -112,9 +112,60 @@ static inline void dot_prod(float *result,
   unsigned int number = 0;
 
   for (number = 0; number < num_points / 2; number++) {
-    dotProduct += bPtr[number] * (aPtr[number] + aPtr[47 - number - 1] );
+    dotProduct += bPtr[number] * (aPtr[number] + aPtr[num_points - number - 1] );
   }
   dotProduct += bPtr[number] * aPtr[number];
+  *result = dotProduct;
+}
+
+#elif defined(TEST_NEON1QSYMM)
+
+#include <arm_neon.h>
+
+static inline void dot_prod(float *result,
+              const float *input,
+              const float *taps,
+              unsigned int num_points) {
+
+  float dotProduct = 0;
+#if defined(TEST_NONALIGN_MEMORY)
+  const float *aPtr = input;
+  const float *bPtr = taps;
+  const float *cPtr = input + num_points;
+#else
+  const float *aPtr = (float *) __builtin_assume_aligned(input, MEMORY_ALIGNMENT);
+  const float *bPtr = (float *) __builtin_assume_aligned(taps, MEMORY_ALIGNMENT);
+  const float *cPtr = (float *) __builtin_assume_aligned(input + num_points, MEMORY_ALIGNMENT);
+#endif
+  unsigned int number = 0;
+
+  unsigned int quarter_points = num_points / 2 / 4;
+  float32x4_t a_val, b_val, r_val, accumulator0;
+  accumulator0 = vdupq_n_f32(0);
+  for (number = 0; number < quarter_points; number++) {
+    cPtr -= 4;
+
+    a_val = vld1q_f32(aPtr);
+    b_val = vld1q_f32(bPtr);
+    r_val = vld1q_f32(cPtr);
+
+    float32x2_t lo = vrev64_f32(vget_high_f32(r_val));
+    float32x2_t hi = vrev64_f32(vget_low_f32(r_val));
+    r_val = vcombine_f32(lo, hi);
+
+    accumulator0 = vmlaq_f32(accumulator0, vaddq_f32(a_val, r_val), b_val);
+
+    aPtr += 4;
+    bPtr += 4;
+  }
+    float accumulator[4];
+    vst1q_f32(accumulator, accumulator0);
+    dotProduct = accumulator[0] + accumulator[1] + accumulator[2] + accumulator[3];
+  for( number = quarter_points * 4; number <num_points / 2; number++  ) {
+    cPtr--;
+    dotProduct += (*bPtr++) * ((*aPtr++) + (*cPtr) );
+  }
+  dotProduct += (*bPtr) * (*aPtr);
   *result = dotProduct;
 }
 
@@ -153,7 +204,7 @@ static inline void dot_prod(float* result,
         __builtin_prefetch(aPtr+16);
         __builtin_prefetch(bPtr+16);
 #endif
-        accumulator0.val[0] = vmlaq_f32(accumulator0.val[0], a_val.val[0], b_val.val[0]);
+        accumulator0.val[0] = vmlaq_f32(accumulator0.val[0], a_zval.val[0], b_val.val[0]);
         accumulator0.val[1] = vmlaq_f32(accumulator0.val[1], a_val.val[1], b_val.val[1]);
         accumulator0.val[2] = vmlaq_f32(accumulator0.val[2], a_val.val[2], b_val.val[2]);
         accumulator0.val[3] = vmlaq_f32(accumulator0.val[3], a_val.val[3], b_val.val[3]);
@@ -505,6 +556,8 @@ int main(int argc, char **argv) {
   if (input == NULL) {
     return EXIT_FAILURE;
   }
+
+
   for (size_t i = 0; i < input_size; i++) {
     // don't care about the loss of data
     input[i] = ((float) (i)) / 128.0f;
