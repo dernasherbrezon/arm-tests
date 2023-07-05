@@ -467,6 +467,64 @@ static inline void dot_prod(float* result,
     *result = dotProduct;
 }
 
+#elif defined(TEST_GENCACHE)
+
+void dot_prod(float *result,
+                      const float *input,
+                      const float *taps,
+                      unsigned int num_points,
+                      size_t output_len) {
+
+  const float *aPtr = input;
+  const float *bPtr = taps;
+
+  for( int i =0;i<output_len;i++ ) {
+    result[i] = bPtr[0]  * (aPtr[0]  + aPtr[47 - 1])
+			+ bPtr[1]  * (aPtr[1]  + aPtr[47 - 2])
+			+ bPtr[2]  * (aPtr[2]  + aPtr[47 - 3])
+			+ bPtr[3]  * (aPtr[3]  + aPtr[47 - 4])
+
+			+ bPtr[4]  * (aPtr[4]  + aPtr[47 - 5])
+			+ bPtr[5]  * (aPtr[5]  + aPtr[47 - 6])
+			+ bPtr[6]  * (aPtr[6]  + aPtr[47 - 7])
+			+ bPtr[7]  * (aPtr[7]  + aPtr[47 - 8])
+
+			+ bPtr[8]  * (aPtr[8]  + aPtr[47 - 9])
+			+ bPtr[9]  * (aPtr[9]  + aPtr[47 - 10])
+			+ bPtr[10] * (aPtr[10] + aPtr[47 - 11])
+			+ bPtr[11] * (aPtr[11] + aPtr[47 - 12])
+
+			+ bPtr[12]  * (aPtr[12]  + aPtr[47 - 13])
+			+ bPtr[13]  * (aPtr[13]  + aPtr[47 - 14])
+			+ bPtr[14]  * (aPtr[14]  + aPtr[47 - 15])
+			+ bPtr[15]  * (aPtr[15]  + aPtr[47 - 16])
+
+			+ bPtr[16]  * (aPtr[16]  + aPtr[47 - 17])
+			+ bPtr[17]  * (aPtr[17]  + aPtr[47 - 18])
+			+ bPtr[18]  * (aPtr[18]  + aPtr[47 - 19])
+			+ bPtr[19]  * (aPtr[19]  + aPtr[47 - 20])
+
+			+ bPtr[20] * (aPtr[20] + aPtr[47 - 21])
+			+ bPtr[21] * (aPtr[21] + aPtr[47 - 22])
+			+ bPtr[22] * (aPtr[22] + aPtr[47 - 23])
+			+ bPtr[23] * (aPtr[23] + 0);
+
+    aPtr++;
+  }
+}
+
+#elif defined(TEST_VOLK)
+
+#include <volk/volk.h>
+
+static inline void dot_prod(float *result,
+                      const float *input,
+                      const float *taps,
+                      unsigned int num_points) {
+
+  volk_32f_x2_dot_prod_32f(result, input, taps, num_points);
+}
+
 #else
 
 void dot_prod(float *result,
@@ -580,6 +638,9 @@ int main(int argc, char **argv) {
   int total_executions = 50;
   clock_t begin = clock();
   for (int i = 0; i < total_executions; i++) {
+#if defined(TEST_GENCACHE)
+    dot_prod(output, input, taps, aligned_taps_size, output_len);
+#else
     for (int j = 0; j < output_len; j++) {
 #if defined(TEST_NONALIGN_MEMORY)
       dot_prod(&output[j], input + j, taps, aligned_taps_size);
@@ -590,6 +651,7 @@ int main(int argc, char **argv) {
       dot_prod(&output[j], aligned_buffer, aligned_taps[align_index], aligned_taps_size);
 #endif
     }
+#endif
   }
 
   clock_t end = clock();
