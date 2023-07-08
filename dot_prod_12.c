@@ -27,7 +27,9 @@ const float FIRST_50_EXPECTED[] = {
     0.157937, 0.161836, 0.165736, 0.169636, 0.173535, 0.177435, 0.181335, 0.185234, 0.189134, 0.193034, 0.196933, 0.200833, 0.204733, 0.208632, 0.212532, 0.216432, 0.220331, 0.224231, 0.228131, 0.232030, 0.235930
 };
 
-static inline void dot_prod(float *result,
+#if defined(TEST_GENERIC)
+
+void dot_prod(float *result,
                             const float *input,
                             const float *taps) {
 
@@ -48,6 +50,81 @@ static inline void dot_prod(float *result,
             + bPtr[11] * (aPtr[11] + aPtr[24 - 12]);
 }
 
+#elif defined(TEST_UNROLL4)
+
+static inline void dot_prod(float *result,
+                            const float *input,
+                            const float *taps,
+                            int output_len) {
+
+  const float *aPtr = input;
+  const float *bPtr = taps;
+  for (int i = 0; i < output_len / 4; i++) {
+    result[4 * i] = bPtr[0] * (aPtr[0] + aPtr[24 - 1])
+                    + bPtr[1] * (aPtr[1] + aPtr[24 - 2])
+                    + bPtr[2] * (aPtr[2] + aPtr[24 - 3])
+                    + bPtr[3] * (aPtr[3] + aPtr[24 - 4])
+                    + bPtr[4] * (aPtr[4] + aPtr[24 - 5])
+                    + bPtr[5] * (aPtr[5] + aPtr[24 - 6])
+                    + bPtr[6] * (aPtr[6] + aPtr[24 - 7])
+                    + bPtr[7] * (aPtr[7] + aPtr[24 - 8])
+                    + bPtr[8] * (aPtr[8] + aPtr[24 - 9])
+                    + bPtr[9] * (aPtr[9] + aPtr[24 - 10])
+                    + bPtr[10] * (aPtr[10] + aPtr[24 - 11])
+                    + bPtr[11] * (aPtr[11] + aPtr[24 - 12]);
+
+    result[4 * i + 1] = bPtr[0] * (aPtr[1] + aPtr[25 - 1])
+                        + bPtr[1] * (aPtr[2] + aPtr[25 - 2])
+                        + bPtr[2] * (aPtr[3] + aPtr[25 - 3])
+                        + bPtr[3] * (aPtr[4] + aPtr[25 - 4])
+                        + bPtr[4] * (aPtr[5] + aPtr[25 - 5])
+                        + bPtr[5] * (aPtr[6] + aPtr[25 - 6])
+                        + bPtr[6] * (aPtr[7] + aPtr[25 - 7])
+                        + bPtr[7] * (aPtr[8] + aPtr[25 - 8])
+                        + bPtr[8] * (aPtr[9] + aPtr[25 - 9])
+                        + bPtr[9] * (aPtr[10] + aPtr[25 - 10])
+                        + bPtr[10] * (aPtr[11] + aPtr[25 - 11])
+                        + bPtr[11] * (aPtr[12] + aPtr[25 - 12]);
+
+    result[4 * i + 2] = bPtr[0] * (aPtr[2] + aPtr[26 - 1])
+                        + bPtr[1] * (aPtr[3] + aPtr[26 - 2])
+                        + bPtr[2] * (aPtr[4] + aPtr[26 - 3])
+                        + bPtr[3] * (aPtr[5] + aPtr[26 - 4])
+                        + bPtr[4] * (aPtr[6] + aPtr[26 - 5])
+                        + bPtr[5] * (aPtr[7] + aPtr[26 - 6])
+                        + bPtr[6] * (aPtr[8] + aPtr[26 - 7])
+                        + bPtr[7] * (aPtr[9] + aPtr[26 - 8])
+                        + bPtr[8] * (aPtr[10] + aPtr[26 - 9])
+                        + bPtr[9] * (aPtr[11] + aPtr[26 - 10])
+                        + bPtr[10] * (aPtr[12] + aPtr[26 - 11])
+                        + bPtr[11] * (aPtr[13] + aPtr[26 - 12]);
+
+    result[4 * i + 3] = bPtr[0] * (aPtr[3] + aPtr[27 - 1])
+                        + bPtr[1] * (aPtr[4] + aPtr[27 - 2])
+                        + bPtr[2] * (aPtr[5] + aPtr[27 - 3])
+                        + bPtr[3] * (aPtr[6] + aPtr[27 - 4])
+                        + bPtr[4] * (aPtr[7] + aPtr[27 - 5])
+                        + bPtr[5] * (aPtr[8] + aPtr[27 - 6])
+                        + bPtr[6] * (aPtr[9] + aPtr[27 - 7])
+                        + bPtr[7] * (aPtr[10] + aPtr[27 - 8])
+                        + bPtr[8] * (aPtr[11] + aPtr[27 - 9])
+                        + bPtr[9] * (aPtr[12] + aPtr[27 - 10])
+                        + bPtr[10] * (aPtr[13] + aPtr[27 - 11])
+                        + bPtr[11] * (aPtr[14] + aPtr[27 - 12]);
+    aPtr += 4;
+  }
+}
+
+#else
+static inline void dot_prod(float *result,
+                            const float *input,
+                            const float *taps,
+                            int output_len) {
+
+
+}
+#endif
+
 int main(int argc, char **argv) {
   size_t input_size = 262144;
   float *input = malloc(sizeof(float) * input_size);
@@ -66,9 +143,13 @@ int main(int argc, char **argv) {
   int total_executions = 50;
   clock_t begin = clock();
   for (int i = 0; i < total_executions; i++) {
+#if defined(TEST_UNROLL4)
+    dot_prod(output, input, TAPS, output_len);
+#else
     for (int j = 0; j < output_len; j++) {
       dot_prod(&output[j], input + j, TAPS);
     }
+#endif
   }
   clock_t end = clock();
   double time_spent = (double) (end - begin) / CLOCKS_PER_SEC;
