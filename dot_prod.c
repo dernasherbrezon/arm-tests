@@ -484,7 +484,7 @@ void dot_prod(float *result,
 			+ bPtr[2]  * (aPtr[2]  + aPtr[47 - 3])
 			+ bPtr[3]  * (aPtr[3]  + aPtr[47 - 4])
 
-			+ bPtr[4]  * (aPtr[4]  + aPtr[47 - 5])
+        + bPtr[4]  * (aPtr[4]  + aPtr[47 - 5])
 			+ bPtr[5]  * (aPtr[5]  + aPtr[47 - 6])
 			+ bPtr[6]  * (aPtr[6]  + aPtr[47 - 7])
 			+ bPtr[7]  * (aPtr[7]  + aPtr[47 - 8])

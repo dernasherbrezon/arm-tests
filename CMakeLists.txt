@@ -59,5 +59,7 @@ foreach(TEST_TYPE TEST_GENERIC TEST_NEON2Q TEST_NEON2QI TEST_NEON1QI TEST_NEON1Q
     endforeach()
 endforeach()
 
-
+set(TEST_ARGUMENTS -O3 -mfloat-abi=hard -march=armv8-a -mfpu=neon -ftree-vectorize -ffast-math -funroll-loops -save-temps=obj -g -fverbose-asm)
+add_executable(dot_prod_12_optimized_64 dot_prod_12.c)
+target_compile_options(dot_prod_12_optimized_64 PUBLIC ${TEST_ARGUMENTS})
 
