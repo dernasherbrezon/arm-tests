@@ -537,7 +537,7 @@ void dot_prod(float *result,
 #endif
 
 int main(int argc, char **argv) {
-  size_t input_size = 262144;
+  size_t input_size = 200000;
   size_t aligned_input_size = input_size;
   unsigned int taps_size = HB_KERNEL_FLOAT_LEN;
   unsigned int aligned_taps_size = taps_size;
@@ -567,7 +567,7 @@ int main(int argc, char **argv) {
   aligned_taps = result;
 #endif
 
-#if !defined(TEST_NONALIGN_MEMORY)
+#if !defined(TEST_NONALIGN_SIZE)
   int align_size;
 #if (defined(TEST_NEON1Q))
   align_size = 4;
@@ -584,7 +584,7 @@ int main(int argc, char **argv) {
     }
     if (taps_size % align_size != 0) {
       aligned_taps_size = ((taps_size / align_size) + 1) * align_size;
-#if defined(TEST_NOALIGN_MEMORY)
+#if defined(TEST_NONALIGN_MEMORY)
       taps = malloc(sizeof(float) * aligned_taps_size);
       memset(taps, 0, sizeof(float) * aligned_taps_size);
       memcpy(taps, HB_KERNEL_FLOAT, sizeof(float) * taps_size);
