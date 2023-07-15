@@ -204,7 +204,7 @@ static inline void dot_prod(float* result,
         __builtin_prefetch(aPtr+16);
         __builtin_prefetch(bPtr+16);
 #endif
-        accumulator0.val[0] = vmlaq_f32(accumulator0.val[0], a_zval.val[0], b_val.val[0]);
+        accumulator0.val[0] = vmlaq_f32(accumulator0.val[0], a_val.val[0], b_val.val[0]);
         accumulator0.val[1] = vmlaq_f32(accumulator0.val[1], a_val.val[1], b_val.val[1]);
         accumulator0.val[2] = vmlaq_f32(accumulator0.val[2], a_val.val[2], b_val.val[2]);
         accumulator0.val[3] = vmlaq_f32(accumulator0.val[3], a_val.val[3], b_val.val[3]);
