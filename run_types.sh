@@ -57,10 +57,11 @@ echo "\"${PREFIX}dot_prod_am16_nas_npref_optimized_64\": $(./build/dot_prod_neon
 echo "additional optimizations"
 echo "\"${PREFIX}dot_prod_nam_as_npref_optimized_64\": $(./build/dot_prod_generic_nam_as_npref_optimized_64),"
 echo "\"${PREFIX}dot_prod_nam_as_npref_optimized_64\": $(./build/dot_prod_neon1qi_nam_as_npref_optimized_64),"
+echo "\"${PREFIX}dot_prod_nam_as_npref_optimized_64\": $(./build/dot_prod_neon2qi_nam_as_npref_optimized_64),"
 echo "\"${PREFIX}dot_prod_nam_as_npref_optimized_64\": $(./build/dot_prod_gensymm_nam_as_npref_optimized_64),"
 echo "\"${PREFIX}dot_prod_nam_as_npref_optimized_64\": $(./build/dot_prod_neon1qsymm_nam_as_npref_optimized_64),"
 echo "\"${PREFIX}dot_prod_nam_as_npref_optimized_64\": $(./build/dot_prod_gencache_nam_as_npref_optimized_64),"
-echo "\"${PREFIX}dot_prod_nam_as_npref_optimized_64\": $(./build/dot_prod_volk_nam_as_pref_optimized_64),"
+echo "\"${PREFIX}dot_prod_nam_as_npref_optimized_64\": $(./build/dot_prod_volk_nam_as),"
 
 
 
