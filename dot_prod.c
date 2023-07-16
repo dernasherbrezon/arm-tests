@@ -87,6 +87,7 @@ static inline void dot_prod(float *result,
 #endif
   unsigned int number = 0;
 
+  #pragma clang loop unroll(full)
   for (number = 0; number < num_points; number++) {
     dotProduct += ((*aPtr++) * (*bPtr++));
   }
@@ -111,6 +112,7 @@ static inline void dot_prod(float *result,
 #endif
   unsigned int number = 0;
 
+  #pragma clang loop unroll(full)
   for (number = 0; number < num_points / 2; number++) {
     dotProduct += bPtr[number] * (aPtr[number] + aPtr[num_points - number - 1] );
   }
