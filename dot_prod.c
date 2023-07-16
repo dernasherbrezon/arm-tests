@@ -524,7 +524,12 @@ static inline void dot_prod(float *result,
                       const float *taps,
                       unsigned int num_points) {
 
+#if defined(TEST_NONALIGN_MEMORY)
   volk_32f_x2_dot_prod_32f(result, input, taps, num_points);
+#else
+  volk_32f_x2_dot_prod_32f_a(result, input, taps, num_points);
+#endif
+
 }
 
 #else
