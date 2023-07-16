@@ -3,7 +3,7 @@
 #include <time.h>
 #include <string.h>
 
-#define TAPS_SIZE 12
+#define TAPS_SIZE 13
 float TAPS[TAPS_SIZE] =
     {
         -0.000998606272947510,
@@ -17,14 +17,15 @@ float TAPS[TAPS_SIZE] =
         -0.037225225204559217,
         0.057533286997004301,
         -0.102327462004259350,
-        0.317034472508947400
+        0.317034472508947400,
+        0.500000000000000000
     };
 
 #define FIRST_50_EXPECTED_LEN 50
 
 const float FIRST_50_EXPECTED[] = {
-    0.044846, 0.048746, 0.052646, 0.056545, 0.060445, 0.064345, 0.068244, 0.072144, 0.076044, 0.079943, 0.083843, 0.087743, 0.091642, 0.095542, 0.099442, 0.103341, 0.107241, 0.111141, 0.115040, 0.118940, 0.122840, 0.126739, 0.130639, 0.134539, 0.138438, 0.142338, 0.146238, 0.150137, 0.154037,
-    0.157937, 0.161836, 0.165736, 0.169636, 0.173535, 0.177435, 0.181335, 0.185234, 0.189134, 0.193034, 0.196933, 0.200833, 0.204733, 0.208632, 0.212532, 0.216432, 0.220331, 0.224231, 0.228131, 0.232030, 0.235930
+    0.179536, 0.187342, 0.195148, 0.202954, 0.210760, 0.218566, 0.226372, 0.234178, 0.241984, 0.249789, 0.257595, 0.265401, 0.273207, 0.281013, 0.288819, 0.296625, 0.304431, 0.312237, 0.320043, 0.327849, 0.335655, 0.343460, 0.351266, 0.359072, 0.366878, 0.374684, 0.382490, 0.390296, 0.398102,
+    0.405908, 0.413714, 0.421520, 0.429326, 0.437132, 0.444937, 0.452743, 0.460549, 0.468355, 0.476161, 0.483967, 0.491773, 0.499579, 0.507385, 0.515191, 0.522996, 0.530803, 0.538609, 0.546414, 0.554220, 0.562026
 };
 
 #if defined(TEST_GENERIC)
@@ -36,18 +37,19 @@ void dot_prod(float *result,
   const float *aPtr = input;
   const float *bPtr = taps;
 
-  *result = bPtr[0] * (aPtr[0] + aPtr[24 - 1])
-            + bPtr[1] * (aPtr[1] + aPtr[24 - 2])
-            + bPtr[2] * (aPtr[2] + aPtr[24 - 3])
-            + bPtr[3] * (aPtr[3] + aPtr[24 - 4])
-            + bPtr[4] * (aPtr[4] + aPtr[24 - 5])
-            + bPtr[5] * (aPtr[5] + aPtr[24 - 6])
-            + bPtr[6] * (aPtr[6] + aPtr[24 - 7])
-            + bPtr[7] * (aPtr[7] + aPtr[24 - 8])
-            + bPtr[8] * (aPtr[8] + aPtr[24 - 9])
-            + bPtr[9] * (aPtr[9] + aPtr[24 - 10])
-            + bPtr[10] * (aPtr[10] + aPtr[24 - 11])
-            + bPtr[11] * (aPtr[11] + aPtr[24 - 12]);
+  *result = bPtr[0] * (aPtr[0] + aPtr[46])
+            + bPtr[1] * (aPtr[2] + aPtr[44])
+            + bPtr[2] * (aPtr[4] + aPtr[42])
+            + bPtr[3] * (aPtr[6] + aPtr[40])
+            + bPtr[4] * (aPtr[8] + aPtr[38])
+            + bPtr[5] * (aPtr[10] + aPtr[36])
+            + bPtr[6] * (aPtr[12] + aPtr[34])
+            + bPtr[7] * (aPtr[14] + aPtr[32])
+            + bPtr[8] * (aPtr[16] + aPtr[30])
+            + bPtr[9] * (aPtr[18] + aPtr[28])
+            + bPtr[10] * (aPtr[20] + aPtr[26])
+            + bPtr[11] * (aPtr[22] + aPtr[24])
+            + bPtr[12] * aPtr[23];
 }
 
 #elif defined(TEST_UNROLL4)
@@ -60,57 +62,62 @@ static inline void dot_prod(float *result,
   const float *aPtr = input;
   const float *bPtr = taps;
   for (int i = 0; i < output_len / 4; i++) {
-    result[4 * i] = bPtr[0] * (aPtr[0] + aPtr[24 - 1])
-                    + bPtr[1] * (aPtr[1] + aPtr[24 - 2])
-                    + bPtr[2] * (aPtr[2] + aPtr[24 - 3])
-                    + bPtr[3] * (aPtr[3] + aPtr[24 - 4])
-                    + bPtr[4] * (aPtr[4] + aPtr[24 - 5])
-                    + bPtr[5] * (aPtr[5] + aPtr[24 - 6])
-                    + bPtr[6] * (aPtr[6] + aPtr[24 - 7])
-                    + bPtr[7] * (aPtr[7] + aPtr[24 - 8])
-                    + bPtr[8] * (aPtr[8] + aPtr[24 - 9])
-                    + bPtr[9] * (aPtr[9] + aPtr[24 - 10])
-                    + bPtr[10] * (aPtr[10] + aPtr[24 - 11])
-                    + bPtr[11] * (aPtr[11] + aPtr[24 - 12]);
 
-    result[4 * i + 1] = bPtr[0] * (aPtr[1] + aPtr[25 - 1])
-                        + bPtr[1] * (aPtr[2] + aPtr[25 - 2])
-                        + bPtr[2] * (aPtr[3] + aPtr[25 - 3])
-                        + bPtr[3] * (aPtr[4] + aPtr[25 - 4])
-                        + bPtr[4] * (aPtr[5] + aPtr[25 - 5])
-                        + bPtr[5] * (aPtr[6] + aPtr[25 - 6])
-                        + bPtr[6] * (aPtr[7] + aPtr[25 - 7])
-                        + bPtr[7] * (aPtr[8] + aPtr[25 - 8])
-                        + bPtr[8] * (aPtr[9] + aPtr[25 - 9])
-                        + bPtr[9] * (aPtr[10] + aPtr[25 - 10])
-                        + bPtr[10] * (aPtr[11] + aPtr[25 - 11])
-                        + bPtr[11] * (aPtr[12] + aPtr[25 - 12]);
+    result[4 * i] = bPtr[0] * (aPtr[0] + aPtr[46])
+            + bPtr[1] * (aPtr[2] + aPtr[44])
+            + bPtr[2] * (aPtr[4] + aPtr[42])
+            + bPtr[3] * (aPtr[6] + aPtr[40])
+            + bPtr[4] * (aPtr[8] + aPtr[38])
+            + bPtr[5] * (aPtr[10] + aPtr[36])
+            + bPtr[6] * (aPtr[12] + aPtr[34])
+            + bPtr[7] * (aPtr[14] + aPtr[32])
+            + bPtr[8] * (aPtr[16] + aPtr[30])
+            + bPtr[9] * (aPtr[18] + aPtr[28])
+            + bPtr[10] * (aPtr[20] + aPtr[26])
+            + bPtr[11] * (aPtr[22] + aPtr[24])
+            + bPtr[12] * aPtr[23];
+    result[4 * i + 1] = bPtr[0] * (aPtr[1+0] + aPtr[1+46])
+               + bPtr[1] * (aPtr[1+2] + aPtr[1+44])
+               + bPtr[2] * (aPtr[1+4] + aPtr[1+42])
+               + bPtr[3] * (aPtr[1+6] + aPtr[1+40])
+               + bPtr[4] * (aPtr[1+8] + aPtr[1+38])
+               + bPtr[5] * (aPtr[1+10] + aPtr[1+36])
+               + bPtr[6] * (aPtr[1+12] + aPtr[1+34])
+               + bPtr[7] * (aPtr[1+14] + aPtr[1+32])
+               + bPtr[8] * (aPtr[1+16] + aPtr[1+30])
+               + bPtr[9] * (aPtr[1+18] + aPtr[1+28])
+               + bPtr[10] * (aPtr[1+20] + aPtr[1+26])
+               + bPtr[11] * (aPtr[1+22] + aPtr[1+24])
+               + bPtr[12] * aPtr[1+23];
 
-    result[4 * i + 2] = bPtr[0] * (aPtr[2] + aPtr[26 - 1])
-                        + bPtr[1] * (aPtr[3] + aPtr[26 - 2])
-                        + bPtr[2] * (aPtr[4] + aPtr[26 - 3])
-                        + bPtr[3] * (aPtr[5] + aPtr[26 - 4])
-                        + bPtr[4] * (aPtr[6] + aPtr[26 - 5])
-                        + bPtr[5] * (aPtr[7] + aPtr[26 - 6])
-                        + bPtr[6] * (aPtr[8] + aPtr[26 - 7])
-                        + bPtr[7] * (aPtr[9] + aPtr[26 - 8])
-                        + bPtr[8] * (aPtr[10] + aPtr[26 - 9])
-                        + bPtr[9] * (aPtr[11] + aPtr[26 - 10])
-                        + bPtr[10] * (aPtr[12] + aPtr[26 - 11])
-                        + bPtr[11] * (aPtr[13] + aPtr[26 - 12]);
+    result[4 * i + 2] = bPtr[0] * (aPtr[2+0] + aPtr[2+46])
+               + bPtr[1] * (aPtr[2+2] + aPtr[2+44])
+               + bPtr[2] * (aPtr[2+4] + aPtr[2+42])
+               + bPtr[3] * (aPtr[2+6] + aPtr[2+40])
+               + bPtr[4] * (aPtr[2+8] + aPtr[2+38])
+               + bPtr[5] * (aPtr[2+10] + aPtr[2+36])
+               + bPtr[6] * (aPtr[2+12] + aPtr[2+34])
+               + bPtr[7] * (aPtr[2+14] + aPtr[2+32])
+               + bPtr[8] * (aPtr[2+16] + aPtr[2+30])
+               + bPtr[9] * (aPtr[2+18] + aPtr[2+28])
+               + bPtr[10] * (aPtr[2+20] + aPtr[2+26])
+               + bPtr[11] * (aPtr[2+22] + aPtr[2+24])
+               + bPtr[12] * aPtr[2+23];
 
-    result[4 * i + 3] = bPtr[0] * (aPtr[3] + aPtr[27 - 1])
-                        + bPtr[1] * (aPtr[4] + aPtr[27 - 2])
-                        + bPtr[2] * (aPtr[5] + aPtr[27 - 3])
-                        + bPtr[3] * (aPtr[6] + aPtr[27 - 4])
-                        + bPtr[4] * (aPtr[7] + aPtr[27 - 5])
-                        + bPtr[5] * (aPtr[8] + aPtr[27 - 6])
-                        + bPtr[6] * (aPtr[9] + aPtr[27 - 7])
-                        + bPtr[7] * (aPtr[10] + aPtr[27 - 8])
-                        + bPtr[8] * (aPtr[11] + aPtr[27 - 9])
-                        + bPtr[9] * (aPtr[12] + aPtr[27 - 10])
-                        + bPtr[10] * (aPtr[13] + aPtr[27 - 11])
-                        + bPtr[11] * (aPtr[14] + aPtr[27 - 12]);
+
+    result[4 * i + 3]  = bPtr[0] * (aPtr[3+0] + aPtr[3+46])
+               + bPtr[1] * (aPtr[3+2] + aPtr[3+44])
+               + bPtr[2] * (aPtr[3+4] + aPtr[3+42])
+               + bPtr[3] * (aPtr[3+6] + aPtr[3+40])
+               + bPtr[4] * (aPtr[3+8] + aPtr[3+38])
+               + bPtr[5] * (aPtr[3+10] + aPtr[3+36])
+               + bPtr[6] * (aPtr[3+12] + aPtr[3+34])
+               + bPtr[7] * (aPtr[3+14] + aPtr[3+32])
+               + bPtr[8] * (aPtr[3+16] + aPtr[3+30])
+               + bPtr[9] * (aPtr[3+18] + aPtr[3+28])
+               + bPtr[10] * (aPtr[3+20] + aPtr[3+26])
+               + bPtr[11] * (aPtr[3+22] + aPtr[3+24])
+               + bPtr[12] * aPtr[3+23];
     aPtr += 4;
   }
 }
@@ -126,7 +133,7 @@ static inline void dot_prod(float *result,
 #endif
 
 int main(int argc, char **argv) {
-  size_t input_size = 262144;
+  size_t input_size = 200000;
   float *input = malloc(sizeof(float) * input_size);
   if (input == NULL) {
     return EXIT_FAILURE;
